@@ -19,6 +19,11 @@
 #include <ZACwire.h> //NEW TSIC LIB
 #include <PubSubClient.h>
 
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
+
+
 /********************************************************
   DEFINES
 ******************************************************/
@@ -64,7 +69,7 @@ int machineLogo = MACHINELOGO;
 
 // Wifi
 const char* hostname = HOSTNAME;
-const char* auth = AUTH;
+char* auth = AUTH;
 const char* ssid = D_SSID;
 const char* pass = PASS;
 unsigned long lastWifiConnectionAttempt = millis();
@@ -89,8 +94,8 @@ int maxflushCycles = MAXFLUSHCYCLES;
 //MQTT
 WiFiClient net;
 PubSubClient mqtt(net);
-const char* mqtt_server_ip = MQTT_SERVER_IP;
-const int mqtt_server_port = MQTT_SERVER_PORT;
+char* mqtt_server_ip = MQTT_SERVER_IP;
+int mqtt_server_port = MQTT_SERVER_PORT;
 const char* mqtt_username = MQTT_USERNAME;
 const char* mqtt_password = MQTT_PASSWORD;
 const char* mqtt_topic_prefix = MQTT_TOPIC_PREFIX;
@@ -311,9 +316,6 @@ BLYNK_WRITE(V40) {
  #endif
 
 
-/********************************************************
-  Emergency stop inf temp is to high
-*****************************************************/
 void testEmergencyStop() {
   if (Input > 120 && emergencyStop == false) {
     emergencyStop = true;
@@ -321,6 +323,106 @@ void testEmergencyStop() {
     emergencyStop = false;
   }
 }
+
+
+/********************************************************
+  WIFI User Settings 
+*****************************************************/
+//flag for saving data
+bool shouldSaveConfig = false;
+
+//callback notifying us of the need to save config
+void saveConfigCallback () {
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
+}
+
+
+void WifiUserSettings() {
+
+  // The extra parameters to be configured (can be either global or just in the setup)
+  // After connecting, parameter.getValue() will get you the configured value
+  // id/name placeholder/prompt default length
+
+  WiFiManagerParameter custom_config("<h3>Userconfig:</h3>");
+  WiFiManagerParameter custom_only_pid("onlypid", "onlypid", "1", 6, "type=\"checkbox\" style=\"width:10%;\">Only PID<br");
+  WiFiManagerParameter custom_offline("offline", "offline", "1", 6, "type=\"checkbox\" style=\"width:10%;\">Offlinemode<br");
+  WiFiManagerParameter custom_display_header("<h5 style=\"margin-bottom: 0;\">Display:</h5>");
+  WiFiManagerParameter custom_display("display", "0", "0", 6, "type=\"radio\" style=\"width:5%;\" checked><label for=\"display\"> Display deactivated</label><br> <input type=\"radio\" style=\"width:5%;\" id=\"display2\" name=\"display\" value=\"1\" > <label for=\"display2\">SH1106(e.g. 1.3\" 128x64)</label><br> <input type=\"radio\" style=\"width:5%;\" id=\"display3\" name=\"display\" value=\"2\" > <label for=\"display3\">SSD1306(e.g.0.96\"128x64)</label><br");
+
+
+  WiFiManagerParameter custom_mqtt_header("<h5 style=\"margin-bottom: 0;\">MQTT:</h5>");
+  WiFiManagerParameter custom_enable_mqtt_server("enable_server", "mqtt server", "1", 6, "type=\"checkbox\" style=\"width:10%;\">MQTT Enabled<br");
+  WiFiManagerParameter custom_mqtt_server("server", "MQTT Server IP", "IP", 40);
+  WiFiManagerParameter custom_mqtt_port("port", "1883", "1883", 6);
+  
+  WiFiManagerParameter custom_blynk_header("<h5 style=\"margin-bottom: 0;\">Blynk:</h5>");
+  WiFiManagerParameter custom_blynk_token("blynk", "YOUR_BLYNK_TOKEN", "YOUR_BLYNK_TOKEN", 32);
+  WiFiManagerParameter custom_blynk_URL("blynkurl", "blynk.remoteapp.de", "blynk.remoteapp.de", 32);
+  WiFiManagerParameter custom_blynk_port("blynkport", "8080", "8080", 6);
+
+  //WiFiManager
+  //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
+
+  //set config save notify callback
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+
+  //add all your parameters here
+  wifiManager.addParameter(&custom_config);
+  wifiManager.addParameter(&custom_only_pid);
+  wifiManager.addParameter(&custom_offline);
+  wifiManager.addParameter(&custom_display_header);
+  wifiManager.addParameter(&custom_display);
+
+  wifiManager.addParameter(&custom_mqtt_header);
+  wifiManager.addParameter(&custom_enable_mqtt_server);
+  wifiManager.addParameter(&custom_mqtt_server);
+  wifiManager.addParameter(&custom_mqtt_port);
+
+  wifiManager.addParameter(&custom_blynk_header);
+  wifiManager.addParameter(&custom_blynk_token);
+  wifiManager.addParameter(&custom_blynk_URL);
+  wifiManager.addParameter(&custom_blynk_port);
+  //reset settings - for testing
+  wifiManager.resetSettings();
+
+  //fetches ssid and pass and tries to connect
+  //if it does not connect it starts an access point with the specified name
+  //here  "AutoConnectAP"
+  //and goes into a blocking loop awaiting configuration
+  if (!wifiManager.autoConnect("RancilioAP")) {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    //reset and try again, or maybe put it to deep sleep
+    ESP.reset();
+    delay(5000);
+  }
+    //if you get here you have connected to the WiFi
+  Serial.println("connected...yeey :)");
+  //char *display;
+  //read updated parameters
+  strcpy(mqtt_server_ip, custom_mqtt_server.getValue());
+  mqtt_server_port = atoi(custom_mqtt_port.getValue());
+  strcpy(auth, custom_blynk_token.getValue());
+  //strcpy(display, custom_display.getValue());
+
+  Serial.println("\tmqtt_server : " + String(mqtt_server_ip));
+  Serial.println("\tmqtt_port : " + String(mqtt_server_port));
+  Serial.println("\tblynk_token : " + String(auth));
+  Serial.println("\tDisplay : " + String(custom_display.getValue()));
+
+  //save the custom parameters to FS
+  if (shouldSaveConfig) {
+    Serial.println("saving config");
+
+    }
+  Serial.println("local ip");
+  Serial.println(WiFi.localIP());
+}
+
+
+
 
 
 void backflush() {
@@ -1174,6 +1276,13 @@ void mqtt_callback(char* topic, byte* data, unsigned int length) {
 
 void setup() {
   DEBUGSTART(115200);
+
+  /********************************************************
+    Load User Settings from WIFI Config
+  ******************************************************/
+
+  WifiUserSettings();
+
 
   if (MQTT == 1) {
     //MQTT
