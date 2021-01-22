@@ -94,7 +94,7 @@ bool mqtt_disabled_temporary = false;
    Vorab-Konfig
 ******************************************************/
 int pidON = 1 ;             // 1 = control loop in closed loop
-int relayON, relayOFF;      // used for relay trigger type. Do not change!
+int relayON, relayOFF,ErelayON,ErelayOFF;      // used for relay trigger type. Do not change!
 int activeState = 3;        // (0:= undefined / EMERGENCY_TEMP reached)
                             // 1:= Coldstart required (machine is cold) 
                             // 2:= Stabilize temperature after coldstart
@@ -219,6 +219,13 @@ bool sensorError = false;
 int error           = 0;
 int maxErrorCounter = 10 ;  //define maximum number of consecutive polls (of intervaltempmes* duration) to have errors
 
+
+/********************************************************
+  Trigger for Rancilio E Machine
+******************************************************/
+unsigned long previousMillisETrigger ;  // initialisation at the end of init()
+const unsigned long intervalETrigger = ENABLE_SILVIAE_RESET ; // in Seconds
+
 /********************************************************
  * Rest
  *****************************************************/
@@ -273,7 +280,7 @@ const unsigned long loop_report_count = 100;
 // Attention: refresh takes around 42ms!
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);   //e.g. 1.3"
 #else
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  //e.g. 0.96"
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R2, /* reset=*/ U8X8_PIN_NONE);  //e.g. 0.96"
 #endif
 unsigned long previousMillisDisplay = 0;  // initialisation at the end of init()
 const long intervalDisplay = 1000;     // Update für Display   //TODO: Sync this with global isrCounter
@@ -1334,6 +1341,25 @@ void loop() {
       output_timestamp = millis();
     }
   }
+  //check if SilviaE should stay on. If reset timer 
+  #if (ENABLE_SILVIAE_RESET > 0)
+  const unsigned int powerOffResetStart = 300;
+  static int ETriggeractive = 0;
+  unsigned long currentMillisETrigger = millis();
+  int reset_timer = ENABLE_SILVIAE_RESET - ( (millis() - currentMillisETrigger)/1000);
+   if (currentMillisETrigger - previousMillisETrigger >= (intervalETrigger-powerOffResetStart))  //s to ms * 1000
+    {  // check 
+      ETriggeractive = 1 ;
+      previousMillisETrigger = currentMillisETrigger;
+      digitalWrite(SILVIA_RESET_PIN, ErelayON);
+    }
+    // 10 Seconds later
+    else if (ETriggeractive == 1 && previousMillisETrigger+(10*1000) < (currentMillisETrigger))
+    {
+    digitalWrite(SILVIA_RESET_PIN, ErelayOFF);
+    ETriggeractive = 0;
+    }
+  #endif
 
   //Sicherheitsabfrage
   if (!sensorError && !emergencyStop && Input > 0) {
@@ -1685,7 +1711,17 @@ void setup() {
     relayON = LOW;
     relayOFF = HIGH;
   }
-
+  /********************************************************
+    Define etrigger type
+  ******************************************************/
+  if (SILVIA_RESET_TriggerType)
+  {
+    ErelayON = HIGH;
+    ErelayOFF = LOW;
+  } else {
+    ErelayON = LOW;
+    ErelayOFF = HIGH;
+  }
   /********************************************************
     Ini Pins
   ******************************************************/

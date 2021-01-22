@@ -12,27 +12,27 @@
 #define MACHINE_TYPE "rancilio"  // supported values are "rancilio" and "gaggia".
  
 #define FORCE_OFFLINE 0       // 0=Use network | 1=Disable all network stuff (WiFi, MQTT, Blynk).
-#define DISABLE_SERVICES_ON_STARTUP_ERRORS 1 // 1=on (default) when a service cannot be connected during startup, never retry | 0=off Try reconnecting to service during regular operations.
-#define ONLYPID 1             // 1=Only PID with no Preinfussion | 0=PID + Preinfussion
+#define DISABLE_SERVICES_ON_STARTUP_ERRORS 0 // 1=on (default) when a service cannot be connected during startup, never retry | 0=off Try reconnecting to service during regular operations.
+#define ONLYPID 0             // 1=Only PID with no Preinfussion | 0=PID + Preinfussion
 #define TEMPSENSOR 2          // 1=DS19B20; 2=TSIC306
-#define TEMPSENSORRECOVERY 0  // 1 = on (default), 2= off. If off, temp sensor errors will stop the heater until power cycle
-#define TRIGGERTYPE HIGH      // LOW = low trigger, HIGH = high trigger relay
+#define TEMPSENSORRECOVERY 1  // 1 = on (default), 2= off. If off, temp sensor errors will stop the heater until power cycle
+#define TRIGGERTYPE LOW      // LOW = low trigger, HIGH = high trigger relay
 #define OTA true              // true=activate update via OTA
-#define GRAFANA 0             // 0=default(off), 1=enable grafana visualisation by Markus (simply ask him for free access)
+#define GRAFANA 1             // 0=default(off), 1=enable grafana visualisation by Markus (simply ask him for free access)
 
 #define BREWTIME        30.0  // length of time of the brewing (in sec). Used to limit brew time via hardware (ONLYPID=0) or visually (ONLYPID=1).
 
 #define BREWDETECTION 1               // 0 = disable | 1 = on (Software/Hardware)
 #define BREWDETECTION_SENSITIVITY 0.6 // If temperature drops in the past 3 seconds by this number (Celcius), then a brew is detected (BREWDETECTION must be 1)
-#define BREWDETECTION_WAIT 90         // (ONLYPID=1) 50=default: Software based BrewDetection is disabled after brewing for this number (seconds)
-#define BREWDETECTION_POWER 50        // heater utiilization (in percent) during brew (BREWDETECTION must be 1)
+#define BREWDETECTION_WAIT 50         // (ONLYPID=1) 50=default: Software based BrewDetection is disabled after brewing for this number (seconds)
+#define BREWDETECTION_POWER 65        // heater utiilization (in percent) during brew (BREWDETECTION must be 1)
                                       // (ONLYPID=0) BREWDETECTION_POWER is active during the whole brew.
                                       // (ONLYPID=1) BREWDETECTION_POWER is only active when current temperature is 1.5 Celcius below SETPOINT.
 
 #define BREW_READY_DETECTION 0.3 // 0=off | 0.x=If measured temperature of the last 6 seconds has been within this defined margin around the SET_POINT, we are able to brew. (recommended value 0.3)
 #define BREW_READY_LED 0         // 0=off | 1=LED at GPO pinLed will lighten when BREW_READY_DETECTION triggers
 
-//#define DEBUGMODE              // to enable Debug uncomment this line. Afterwards you can connect via telnet to pot 23 to see debug logs.
+#define DEBUGMODE              // to enable Debug uncomment this line. Afterwards you can connect via telnet to pot 23 to see debug logs.
 
 
 /*******   
@@ -49,29 +49,31 @@
 /*******   
  * Display Settings
  *******/       
-#define DISPLAY 0                         // 0=Deaktiviert, 1=SH1106_128X64, 2=SSD1306_128X64
-#define ICON_COLLECTION 0                 // 0:="simple", 1:="smiley", 2:="winter"
-#define DISPLAY_TEXT "Bleeding-Edge PID"  // Text is displayed on bootup (max 21 chars)
+#define DISPLAY 2                         // 0=Deaktiviert, 1=SH1106_128X64, 2=SSD1306_128X64
+#define ICON_COLLECTION 2                 // 0:="simple", 1:="smiley", 2:="winter"
+#define DISPLAY_TEXT "Rancilio PID"  // Text is displayed on bootup (max 21 chars)
 //#define OVERWRITE_VERSION_DISPLAY_TEXT "" // Text is displayed on bootup one line below DISPLAY_TEXT (max 21 chars)
 #define EMERGENCY_ICON "rancilio"         // icon displayed when temperature is >EMERGENCY_TEMP. Allowed values are "rancilio" or "steam"
 #define EMERGENCY_TEMP 116                // If temperature is higher then notifications are send via display/debug/mqtt.
-                                          // Reason might be an error OR the user wants to steam milk.
+                                       // Reason might be an error OR the user wants to steam milk.
 #define ENABLE_FAILURE_STATUS_ICONS 1     // 1 = on (default), 0 = off. If enabled show status icons if services are offline.
-#define ENABLE_SCREEN_SAVER 3             // 0=Disable, 1=Enable(blank screen), 2=Enable(use BrewReady Collection Icon), 3=Enable(Use Maschine logo)
-#define ENABLE_POWER_OFF_COUNTDOWN 0      // 0 = off (default) | 1...n If maschine is inactive for this amount of seconds, we expect the maschine
+#define ENABLE_SCREEN_SAVER 2             // 0=Disable, 1=Enable(blank screen), 2=Enable(use BrewReady Collection Icon), 3=Enable(Use Maschine logo)
+#define ENABLE_POWER_OFF_COUNTDOWN 1      // 0 = off (default) | 1...n If maschine is inactive for this amount of seconds, we expect the maschine
                                           // to shutdown (Silvia 5E: 1800). Show countdown for the last 3 minutes.
 #define ENABLE_USER_MENU  0               // 0 = off | 1 = on (only for ONLYPID=1) USE GPIO A0 (ADC0) PIN to detect the hardware buttons
-
+#define ENABLE_SILVIAE_RESET 1800       // the same as ENABLE_POWER_OFF_COUNTDOWN but we will reset with relais and it will not go off
+#define SILVIA_RESET_PIN 16
+#define SILVIA_RESET_TriggerType LOW
 /*******   
  * General PID values
  *******/
-#define STEADYPOWER 4.6 // Constant power of heater to accomodate against loss of heat to environment (in %)
+#define STEADYPOWER 5.4 // Constant power of heater to accomodate against loss of heat to environment (in %)
                         // (Rancilio Silvia 5E: 4.6 , ...)
 #define STEADYPOWER_OFFSET_TIME 850   // If brew group is very cold, we need to put additional power to the heater: 
                                       // How long should this additional power be delivered (in s) (Rancilio Silvia 5E: 850, ...)
-#define STEADYPOWER_OFFSET 3.0        // How much power should be added? (in %) (Rancilio Silvia 5E: 2.9, ...)
+#define STEADYPOWER_OFFSET 3        // How much power should be added? (in %) (Rancilio Silvia 5E: 2.9, ...)
 
-#define SETPOINT 93     // Temperature SetPoint
+#define SETPOINT 96     // Temperature SetPoint
 #define STARTTEMP 80.6    // If temperature is below this value then Coldstart state should be triggered
                         // (Rancilio Silvia 5E: 80.6 , ...)
 
@@ -89,8 +91,8 @@
 /*******   
  * Preinfussion settings (only useful when ONLYPID=0)
  *******/
-#define PREINFUSION       1.5   //  length of time of the pre-infusion (in sec) 
-#define PREINFUSION_PAUSE 2     // length of time of the pre-infusion pause (time in between the pre-infussion and brewing) (in sec) 
+#define PREINFUSION       0   //  length of time of the pre-infusion (in sec) 
+#define PREINFUSION_PAUSE 0     // length of time of the pre-infusion pause (time in between the pre-infussion and brewing) (in sec) 
 // dont forget to adapt BREWTIME mentioned above
 
 
@@ -99,28 +101,28 @@
  *******/
 // Wifi
 #define HOSTNAME "rancilio"
-#define D_SSID "wlanname"
-#define PASS "wlanpass"
+#define D_SSID "optimus"
+#define PASS "em3pCnjT40"
 //#define STATIC_IP ip(192, 168, x, y);            //uncomment and set this to your network to force static IP
 //#define STATIC_GATEWAY gateway(192, 168, x, 1);  //uncomment and set this to your network to force static IP
 //#define STATIC_SUBNET subnet(255,255,255,0);     //uncomment and set this to your network to force static IP
 
 // OTA
 #define OTAHOST "Rancilio"               // Name to be shown in ARUDINO IDE Port
-#define OTAPASS "otapassBleedingEdge"    // Password for OTA updates
+#define OTAPASS "otapass"    // Password for OTA updates
 
 // Blynk
-#define BLYNK_ENABLE 0       // 1=on (default. Blynk PID values overwrite userConfig.h settings) | 0=off (userConfig.h PID settings are used)
-#define BLYNKAUTH "blynkauthcode"
-#define BLYNKADDRESS "any.blynk.server.adress"   // IP-Address of locally installed blynk server
+#define BLYNK_ENABLE 1       // 1=on (default. Blynk PID values overwrite userConfig.h settings) | 0=off (userConfig.h PID settings are used)
+#define BLYNKAUTH "MdFtPJIM2I4yhBflg9tH6TlwLOV3pFAJ"
+#define BLYNKADDRESS "blynk.remoteapp.de"   // IP-Address of locally installed blynk server
 #define BLYNKPORT 8080
 
 // MQTT
-#define MQTT_ENABLE 2        // 0 = off (no MQTT at all) | 1=MQTT client  | 2=MQTT Server if you dont have a mqtt server running on another system
+#define MQTT_ENABLE 1        // 0 = off (no MQTT at all) | 1=MQTT client  | 2=MQTT Server if you dont have a mqtt server running on another system
 #define MQTT_USERNAME "myuser"
 #define MQTT_PASSWORD "mypass"
 #define MQTT_TOPIC_PREFIX "custom/Küche."  // topic will be "<MQTT_TOPIC_PREFIX><HOSTNAME>/<READING>"
-#define MQTT_SERVER_IP "192.168.x.x"       // (MQTT_ENABLE=1) IP-Address of locally installed mqtt server
+#define MQTT_SERVER_IP "192.168.178.26"       // (MQTT_ENABLE=1) IP-Address of locally installed mqtt server
 #define MQTT_SERVER_PORT 1883              // (MQTT_ENABLE=1)
 
 
