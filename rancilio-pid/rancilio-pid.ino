@@ -223,7 +223,7 @@ int maxErrorCounter = 10 ;  //define maximum number of consecutive polls (of int
 /********************************************************
   Trigger for Rancilio E Machine
 ******************************************************/
-unsigned long previousMillisETrigger ;  // initialisation at the end of init()
+unsigned long previousMillisETrigger = millis();  // initialisation at the end of init()
 const unsigned long intervalETrigger = ENABLE_SILVIAE_RESET ; // in Seconds
 
 /********************************************************
@@ -1342,24 +1342,22 @@ void loop() {
     }
   }
   //check if SilviaE should stay on. If reset timer 
-  #if (ENABLE_SILVIAE_RESET > 0)
   const unsigned int powerOffResetStart = 300;
   static int ETriggeractive = 0;
   unsigned long currentMillisETrigger = millis();
   int reset_timer = ENABLE_SILVIAE_RESET - ( (millis() - currentMillisETrigger)/1000);
-   if (currentMillisETrigger - previousMillisETrigger >= (intervalETrigger-powerOffResetStart))  //s to ms * 1000
-    {  // check 
-      ETriggeractive = 1 ;
-      previousMillisETrigger = currentMillisETrigger;
-      digitalWrite(SILVIA_RESET_PIN, ErelayON);
-    }
-    // 10 Seconds later
-    else if (ETriggeractive == 1 && previousMillisETrigger+(10*1000) < (currentMillisETrigger))
-    {
-    digitalWrite(SILVIA_RESET_PIN, ErelayOFF);
-    ETriggeractive = 0;
-    }
-  #endif
+  if (currentMillisETrigger - previousMillisETrigger >= (intervalETrigger-powerOffResetStart)*1000)  //s to ms * 1000
+  {  // check 
+    ETriggeractive = 1 ;
+    previousMillisETrigger = currentMillisETrigger;
+    digitalWrite(SILVIA_RESET_PIN, ErelayON);
+  }
+  // 10 Seconds later
+  else if (ETriggeractive == 1 && previousMillisETrigger+(1000) < (currentMillisETrigger))
+  {
+  digitalWrite(SILVIA_RESET_PIN, ErelayOFF);
+  ETriggeractive = 0;
+  }
 
   //Sicherheitsabfrage
   if (!sensorError && !emergencyStop && Input > 0) {
